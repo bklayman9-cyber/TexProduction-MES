@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Garment MES - Execution System v2.0</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="h-full text-slate-100 font-sans antialiased">
+
+    <div class="min-h-full flex flex-col">
+        <!-- Top Navigation -->
+        <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-blue-600 rounded-lg">
+                    <i class="fa-solid fa-microchip text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">TexProduction MES <span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded border border-blue-500/30">Industry 4.0</span></h1>
+                    <p class="text-xs text-slate-400">Système d'Exécution de la Production Textile</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="exportToCSV()" class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-lg transition border border-slate-600 flex items-center gap-2">
+                    <i class="fa-solid fa-file-excel text-emerald-400"></i> Exporter CSV
+                </button>
+                <button onclick="clearData()" class="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold rounded-lg transition border border-rose-500/30">
+                    <i class="fa-solid fa-trash"></i> Reset
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Body -->
+        <main class="flex-1 p-6 space-y-6 max-w-[1600px] mx-auto w-full">
+
+            <!-- KPIs Dashboard Row -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700/60 shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-2 h-full bg-blue-500"></div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">TRS / OEE Global</p>
+                    <div class="flex items-baseline justify-between mt-2">
+                        <h2 id="kpiTRS" class="text-3xl font-extrabold text-white">0%</h2>
+                        <span id="badgeTRS" class="text-xs px-2 py-1 rounded bg-slate-700 text-slate-300">N/A</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-2">Taux Rendement Synthétique</p>
+                </div>
+
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700/60 shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-2 h-full bg-emerald-500"></div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Production Conforme</p>
+                    <div class="flex items-baseline justify-between mt-2">
+                        <h2 id="kpiBonnes" class="text-3xl font-extrabold text-emerald-400">0</h2>
+                        <span class="text-xs text-slate-400">pcs</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-2">Pièces validées sans retouche</p>
+                </div>
+
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700/60 shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-2 h-full bg-rose-500"></div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Taux de Rejet / Retouche</p>
+                    <div class="flex items-baseline justify-between mt-2">
+                        <h2 id="kpiRejet" class="text-3xl font-extrabold text-rose-400">0%</h2>
+                        <span id="kpiRejetPcs" class="text-xs text-rose-300">0 pcs</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-2">Défauts identifiés en chaîne</p>
+                </div>
+
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700/60 shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-2 h-full bg-amber-500"></div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Temps Perdu (Arrêts)</p>
+                    <div class="flex items-baseline justify-between mt-2">
+                        <h2 id="kpiTempsPerdu" class="text-3xl font-extrabold text-amber-400">0 min</h2>
+                        <span class="text-xs text-amber-300/80">Panne / Attente</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-2">Inaction technique & logistique</p>
+                </div>
+            </div>
+
+            <!-- Workspace Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Advanced Saisie Form -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700/60 shadow-lg">
+                    <h2 class="text-base font-bold text-slate-200 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-blue-400"></i> Saisie de Lot de Production
+                    </h2>
+                    <form id="mesForm" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Ligne de Production</label>
+                            <select id="ligne" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                                <option value="Ligne A - Veste">Ligne A - Veste</option>
+                                <option value="Ligne B - Pantalon">Ligne B - Pantalon</option>
+                                <option value="Ligne C - Chemise">Ligne C - Chemise</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Temps Gamme (min/pc)</label>
+                                <input type="number" step="0.1" id="tempsGamme" placeholder="ex: 4.5" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Operateurs actifs</label>
+                                <input type="number" id="operateurs" placeholder="ex: 12" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Pièces Bonnes (OK)</label>
+                                <input type="number" id="pcsBonnes" placeholder="ex: 120" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Pièces Retouchées (NOK)</label>
+                                <input type="number" id="pcsRetouches" placeholder="ex: 8" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Temps Travaillé (Heures)</label>
+                                <input type="number" step="0.5" id="tempsTravail" placeholder="ex: 2.0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Temps d'Arrêt (Minutes)</label>
+                                <input type="number" id="tempsArret" placeholder="ex: 15" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg transition duration-200 text-sm shadow-lg shadow-blue-600/30 flex justify-center items-center gap-2">
+                            <i class="fa-solid fa-plus-circle"></i> Injecter les Données
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Charts Display -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700/60 shadow-lg lg:col-span-2 flex flex-col justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-200 mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-emerald-400"></i> Performance par Ligne vs TRS Target (85%)
+                        </h2>
+                        <div class="h-[280px] w-full">
+                            <canvas id="trsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700/60 shadow-lg overflow-x-auto">
+                <h2 class="text-base font-bold text-slate-200 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-database text-purple-400"></i> Journal de Production (Real-Time MES Log)
+                </h2>
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900/80 text-slate-400 text-xs text-uppercase border-b border-slate-700">
+                            <th class="p-3">Horodatage</th>
+                            <th class="p-3">Ligne</th>
+                            <th class="p-3">Effectif</th>
+                            <th class="p-3">Temps Gamme</th>
+                            <th class="p-3">Prod (OK / NOK)</th>
+                            <th class="p-3">Temps Arrêt</th>
+                            <th class="p-3">TRS / Rendement</th>
+                            <th class="p-3">Statut TRS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mesTableBody" class="divide-y divide-slate-700/50 text-xs">
+                        <!-- Data populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- JS Logic -->
+    <script>
+        let mesStore = JSON.parse(localStorage.getItem('mes_data_v2')) || [];
+        let trsChartInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderUI();
+        });
+
+        document.getElementById('mesForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const ligne = document.getElementById('ligne').value;
+            const tempsGamme = parseFloat(document.getElementById('tempsGamme').value);
+            const operateurs = parseInt(document.getElementById('operateurs').value);
+            const pcsBonnes = parseInt(document.getElementById('pcsBonnes').value);
+            const pcsRetouches = parseInt(document.getElementById('pcsRetouches').value);
+            const tempsTravail = parseFloat(document.getElementById('tempsTravail').value); // en heures
+            const tempsArret = parseInt(document.getElementById('tempsArret').value); // en minutes
+
+            const totalPcs = pcsBonnes + pcsRetouches;
+            
+            // Calculs Métier Textile Avançés (TRS / OEE)
+            // Temps utile = Pièces bonnes * Temps Gamme (min)
+            const tempsUtile = pcsBonnes * tempsGamme; 
+            // Temps requis total (en minutes) = Heures * 60 * Nombre d'opérateurs
+            const tempsOuvertureTotal = (tempsTravail * 60) * operateurs;
+
+            // TRS = (Temps Utile / Temps Ouverture) * 100
+            const trs = tempsOuvertureTotal > 0 ? ((tempsUtile / tempsOuvertureTotal) * 100).toFixed(1) : 0;
+            const tauxQualite = totalPcs > 0 ? ((pcsBonnes / totalPcs) * 100).toFixed(1) : 0;
+
+            const entry = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+                ligne,
+                tempsGamme,
+                operateurs,
+                pcsBonnes,
+                pcsRetouches,
+                totalPcs,
+                tempsTravail,
+                tempsArret,
+                trs: parseFloat(trs),
+                tauxQualite: parseFloat(tauxQualite)
+            };
+
+            mesStore.push(entry);
+            localStorage.setItem('mes_data_v2', JSON.stringify(mesStore));
+
+            document.getElementById('mesForm').reset();
+            renderUI();
+        });
+
+        function clearData() {
+            if(confirm("Voulez-vous supprimer tout le journal de production ?")) {
+                mesStore = [];
+                localStorage.removeItem('mes_data_v2');
+                renderUI();
+            }
+        }
+
+        function exportToCSV() {
+            if(!mesStore.length) return alert("Aucune donnée à exporter");
+            
+            let csvContent = "data:text/csv;charset=utf-8,Heure,Ligne,Operateurs,TempsGamme,PcsOK,PcsNOK,ArrêtMin,TRS_Pourcent\n";
+            mesStore.forEach(r => {
+                csvContent += `${r.timestamp},${r.ligne},${r.operateurs},${r.tempsGamme},${r.pcsBonnes},${r.pcsRetouches},${r.tempsArret},${r.trs}%\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `MES_Export_Production_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function renderUI() {
+            renderKPIs();
+            renderTable();
+            renderChart();
+        }
+
+        function renderKPIs() {
+            if(!mesStore.length) {
+                document.getElementById('kpiTRS').innerText = "0%";
+                document.getElementById('kpiBonnes').innerText = "0";
+                document.getElementById('kpiRejet').innerText = "0%";
+                document.getElementById('kpiRejetPcs').innerText = "0 pcs";
+                document.getElementById('kpiTempsPerdu').innerText = "0 min";
+                return;
+            }
+
+            const totalBonnes = mesStore.reduce((a, b) => a + b.pcsBonnes, 0);
+            const totalRetouches = mesStore.reduce((a, b) => a + b.pcsRetouches, 0);
+            const totalPcs = totalBonnes + totalRetouches;
+            const avgTRS = (mesStore.reduce((a, b) => a + b.trs, 0) / mesStore.length).toFixed(1);
+            const totalArret = mesStore.reduce((a, b) => a + b.tempsArret, 0);
+            const tauxRejet = totalPcs > 0 ? ((totalRetouches / totalPcs) * 100).toFixed(1) : 0;
+
+            document.getElementById('kpiTRS').innerText = `${avgTRS}%`;
+            document.getElementById('badgeTRS').innerText = avgTRS >= 85 ? "World Class" : avgTRS >= 70 ? "Acceptable" : "Critique";
+            document.getElementById('badgeTRS').className = `text-xs px-2 py-1 rounded font-bold ${avgTRS >= 85 ? 'bg-emerald-500/20 text-emerald-400' : avgTRS >= 70 ? 'bg-amber-500/20 text-amber-400' : 'bg-rose-500/20 text-rose-400'}`;
+
+            document.getElementById('kpiBonnes').innerText = totalBonnes.toLocaleString();
+            document.getElementById('kpiRejet').innerText = `${tauxRejet}%`;
+            document.getElementById('kpiRejetPcs').innerText = `${totalRetouches} pcs`;
+            document.getElementById('kpiTempsPerdu').innerText = `${totalArret} min`;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('mesTableBody');
+            tbody.innerHTML = '';
+
+            mesStore.slice().reverse().forEach(r => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-700/30 transition";
+
+                const trsBadge = r.trs >= 85 
+                    ? '<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">Excellent</span>'
+                    : r.trs >= 70 
+                    ? '<span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded">Moyen</span>'
+                    : '<span class="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded">Alerte</span>';
+
+                tr.innerHTML = `
+                    <td class="p-3 text-slate-400">${r.timestamp}</td>
+                    <td class="p-3 font-semibold text-white">${r.ligne}</td>
+                    <td class="p-3">${r.operateurs} op.</td>
+                    <td class="p-3">${r.tempsGamme} min</td>
+                    <td class="p-3"><span class="text-emerald-400 font-bold">${r.pcsBonnes}</span> / <span class="text-rose-400">${r.pcsRetouches}</span></td>
+                    <td class="p-3 text-amber-400 font-medium">${r.tempsArret} min</td>
+                    <td class="p-3 font-extrabold">${r.trs}%</td>
+                    <td class="p-3">${trsBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('trsChart').getContext('2d');
+            const lignes = ['Ligne A - Veste', 'Ligne B - Pantalon', 'Ligne C - Chemise'];
+
+            const trsData = lignes.map(l => {
+                const filtered = mesStore.filter(d => d.ligne === l);
+                if(!filtered.length) return 0;
+                return (filtered.reduce((a,b) => a + b.trs, 0) / filtered.length).toFixed(1);
+            });
+
+            if(trsChartInstance) trsChartInstance.destroy();
+
+            trsChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Ligne A (Veste)', 'Ligne B (Pantalon)', 'Ligne C (Chemise)'],
+                    datasets: [
+                        {
+                            label: 'TRS Réel (%)',
+                            data: trsData,
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Cible Industrielle (85%)',
+                            data: [85, 85, 85],
+                            type: 'line',
+                            borderColor: '#10b981',
+                            borderDash: [5, 5],
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#94a3b8' } }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, max: 100, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
